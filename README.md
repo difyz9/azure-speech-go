@@ -43,7 +43,7 @@ SPEECH_REGION=your_region_here
 
 ```bash
 # 构建并启动容器
-docker-compose up -d
+docker compose up -d
 
 # 进入容器
 docker-compose exec azure-speech-go bash
@@ -207,3 +207,68 @@ curl -I https://cognitiveservices.azure.com/
 ---
 
 ⭐ 如果这个项目对您有帮助，请给个 Star！
+
+
+                                                    
+```
+
+ubuntu@VM-0-14-ubuntu:~/azure01$ sudo docker ps
+CONTAINER ID   IMAGE                     COMMAND   CREATED          STATUS          PORTS                                         NAMES
+feacc58f39c2   azure01-azure-speech-go   "bash"    11 seconds ago   Up 11 seconds   0.0.0.0:8080->8080/tcp, [::]:8080->8080/tcp   azure-speech-go-dev
+ubuntu@VM-0-14-ubuntu:~/azure01$ sudo docker exec -it feacc58f39c2 /bin/bash
+root@feacc58f39c2:/workspace# ls
+Dockerfile  README.md      azure_speech_demo.go  docker-compose.yml  go.sum   output          run_tts.sh  test_environment.sh
+Makefile    TTS_README.md  dev01.md              go.mod              main.go  quick_start.sh  start.sh    text_to_speech.go
+root@feacc58f39c2:/workspace# ll
+total 92
+drwxr-xr-x 3 ubuntu 1001 4096 Oct 21 10:08 ./
+drwxr-xr-x 1 root   root 4096 Oct 21 10:08 ../
+-rw-r--r-- 1 ubuntu 1001  116 Oct 21 08:17 .env
+-rw-r--r-- 1 ubuntu 1001  527 Oct 21 08:31 .env.example
+-rw-r--r-- 1 ubuntu 1001 1986 Oct 21 10:05 Dockerfile
+-rw-r--r-- 1 ubuntu 1001 1238 Oct 21 08:35 Makefile
+-rw-r--r-- 1 ubuntu 1001 4678 Oct 21 08:33 README.md
+-rw-r--r-- 1 ubuntu 1001 1438 Oct 21 10:05 TTS_README.md
+-rw-r--r-- 1 ubuntu 1001 7035 Oct 21 08:32 azure_speech_demo.go
+-rw-r--r-- 1 ubuntu 1001 4345 Oct 21 08:45 dev01.md
+-rw-r--r-- 1 ubuntu 1001 1060 Oct 21 10:04 docker-compose.yml
+-rw-r--r-- 1 ubuntu 1001  108 Oct 21 08:57 go.mod
+-rw-r--r-- 1 ubuntu 1001  227 Oct 21 08:56 go.sum
+-rw-r--r-- 1 ubuntu 1001 1667 Oct 21 08:14 main.go
+drwxr-xr-x 2 root   root 4096 Oct 21 10:08 output/
+-rw-r--r-- 1 ubuntu 1001 2367 Oct 21 08:35 quick_start.sh
+-rwxr-xr-x 1 ubuntu 1001  705 Oct 21 10:05 run_tts.sh*
+-rw-r--r-- 1 ubuntu 1001  530 Oct 21 08:14 start.sh
+-rw-r--r-- 1 ubuntu 1001 2676 Oct 21 08:34 test_environment.sh
+-rw-r--r-- 1 ubuntu 1001 3257 Oct 21 10:04 text_to_speech.go
+root@feacc58f39c2:/workspace# cd output/  
+root@feacc58f39c2:/workspace/output# ls
+root@feacc58f39c2:/workspace/output# ll
+total 8
+drwxr-xr-x 2 root   root 4096 Oct 21 10:08 ./
+drwxr-xr-x 3 ubuntu 1001 4096 Oct 21 10:08 ../
+root@feacc58f39c2:/workspace/output# cd ..
+root@feacc58f39c2:/workspace# go run text_to_speech.go 
+开始批量语音合成...
+===========================================
+正在合成: 你好，这是 Azure 语音服务的测试。
+✓ 音频已保存到: /workspace/output/speech_1_20251021_100859.wav
+-------------------------------------------
+正在合成: 今天天气很好，适合出去散步。
+✓ 音频已保存到: /workspace/output/speech_2_20251021_100901.wav
+-------------------------------------------
+正在合成: 人工智能正在改变我们的生活方式。
+✓ 音频已保存到: /workspace/output/speech_3_20251021_100903.wav
+-------------------------------------------
+正在合成: 学习新技能需要耐心和持续的努力。
+✓ 音频已保存到: /workspace/output/speech_4_20251021_100904.wav
+-------------------------------------------
+正在合成: 科技让世界变得更加美好和便捷。
+✓ 音频已保存到: /workspace/output/speech_5_20251021_100906.wav
+-------------------------------------------
+===========================================
+合成完成！成功: 5/5
+音频文件保存在: /workspace/output
+root@feacc58f39c2:/workspace# 
+
+```
