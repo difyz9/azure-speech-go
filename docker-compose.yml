@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  azure-speech-go:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: azure-speech-go-dev
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+      - ./output:/workspace/output
+      - go-modules:/go/pkg/mod
+    environment:
+      # Azure Speech Service 配置
+      - SPEECH_KEY=${SPEECH_KEY}
+      - SPEECH_REGION=${SPEECH_REGION}
+      # Go 环境配置
+      - GO111MODULE=on
+      - GOPROXY=https://goproxy.cn,direct
+      - CGO_ENABLED=1
+      # Speech SDK 环境变量
+      - SPEECHSDK_ROOT=/opt/speechsdk
+      - CGO_CFLAGS=-I/opt/speechsdk/include/c_api
+      - CGO_LDFLAGS=-L/opt/speechsdk/lib/x64 -lMicrosoft.CognitiveServices.Speech.core
+      - LD_LIBRARY_PATH=/opt/speechsdk/lib/x64:$LD_LIBRARY_PATH
+    ports:
+      - "8080:8080"
+    devices:
+      # 音频设备支持（如果需要麦克风和扬声器）
+      - /dev/snd:/dev/snd
+    stdin_open: true
+    tty: true
+    networks:
+      - azure-speech-net
+
+volumes:
+  go-modules:
+
+networks:
+  azure-speech-net:
+    driver: bridge
