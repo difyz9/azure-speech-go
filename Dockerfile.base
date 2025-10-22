@@ -1,5 +1,10 @@
-# 使用 Ubuntu 24.04 作为基础镜像
+# Azure Speech SDK Go 基础镜像
 FROM ubuntu:24.04
+
+# 镜像信息
+LABEL maintainer="Azure Speech SDK Go Base Image"
+LABEL description="Ubuntu 24.04 with Go 1.22 and Azure Speech SDK pre-installed"
+LABEL version="1.0"
 
 # 设置环境变量
 ENV DEBIAN_FRONTEND=noninteractive
@@ -19,7 +24,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # 安装 Go
-RUN wget https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz \
+RUN wget -q https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz \
     && tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz \
     && rm go${GO_VERSION}.linux-amd64.tar.gz
 
@@ -35,40 +40,39 @@ ENV CGO_ENABLED=1
 RUN mkdir -p $SPEECHSDK_ROOT
 
 # 下载并安装 Azure Speech SDK
-RUN wget -O SpeechSDK-Linux.tar.gz https://aka.ms/csspeech/linuxbinary \
+RUN wget -q -O SpeechSDK-Linux.tar.gz https://aka.ms/csspeech/linuxbinary \
     && tar --strip 1 -xzf SpeechSDK-Linux.tar.gz -C $SPEECHSDK_ROOT \
     && rm SpeechSDK-Linux.tar.gz
 
 # 设置 Speech SDK 环境变量
 ENV CGO_CFLAGS="-I$SPEECHSDK_ROOT/include/c_api"
 ENV CGO_LDFLAGS="-L$SPEECHSDK_ROOT/lib/x64 -lMicrosoft.CognitiveServices.Speech.core"
-ENV LD_LIBRARY_PATH="$SPEECHSDK_ROOT/lib/x64:$LD_LIBRARY_PATH"
+ENV LD_LIBRARY_PATH="$SPEECHSDK_ROOT/lib/x64:/usr/local/lib"
 
-# 复制库文件到系统路径（可选，便于链接）
+# 复制库文件到系统路径
 RUN cp $SPEECHSDK_ROOT/lib/x64/libMicrosoft.CognitiveServices.Speech.core.so /usr/local/lib/ \
     && ldconfig
 
-# 配置 Git (Go 模块需要)
+# 配置 Git
 RUN git config --global user.email "docker@example.com" \
     && git config --global user.name "Docker Build"
 
-# 设置工作目录
+# 创建工作目录
+RUN mkdir -p /workspace /app
+WORKDIR /app
+
+# 预下载常用的 Go 依赖，加速后续构建
+RUN go mod init temp \
+    && go get github.com/gin-gonic/gin@latest \
+    && go get github.com/Microsoft/cognitive-services-speech-sdk-go@latest \
+    && rm -rf /app/*
+
+# 设置默认工作目录
 WORKDIR /workspace
 
-# 复制项目文件
-COPY . .
-
-# 初始化 Go 模块并添加依赖
-RUN go mod init azure-speech-service || true \
-    && go get github.com/Microsoft/cognitive-services-speech-sdk-go@latest \
-    && go mod tidy
-
-# 构建应用
-RUN mkdir -p bin \
-    && go build -o bin/text-to-speech text_to_speech.go 
-
-# 暴露端口
-EXPOSE 8080
-
-# 启动命令
+# 默认命令
 CMD ["bash"]
+
+
+
+# sudo docker build -f Dockerfile.base -t azure-speech-sdk:latest . 

@@ -1,274 +1,310 @@
-# Azure 语音服务 Go 开发环境
+# Azure TTS API 服务
 
-🎤 基于 Docker 的 Azure 认知服务语音 SDK Go 语言开发环境，支持语音识别、文本转语音等功能。
-
-## 📋 项目概述
-
-这是一个完整的 Azure 语音服务 Go 语言开发环境，提供了：
-
-- 🗣️ **语音识别** (Speech-to-Text)
-- 🔊 **文本转语音** (Text-to-Speech) 
-- 🌐 **Web 界面演示**
-- 📦 **批量语音合成**
-- 🐳 **Docker 容器化部署**
+基于 Azure 认知服务的文本转语音 API，支持多种语言和音频格式。
 
 ## 🚀 快速开始
 
-### 1. 环境准备
+### 环境要求
 
-确保您已安装：
-- [Docker](https://www.docker.com/)
-- [Docker Compose](https://docs.docker.com/compose/)
+- Docker & Docker Compose
+- Azure 认知服务订阅 (Speech Service)
 
-### 2. Azure 配置
-
-1. 在 [Azure Portal](https://portal.azure.com/) 创建语音服务资源
-2. 获取 API 密钥和区域信息
-3. 创建 `.env` 文件：
+### 1. 克隆项目
 
 ```bash
-# 复制环境变量模板
-cp .env.example .env
+git clone <repository-url>
+cd azure04
 ```
 
-编辑 `.env` 文件，填入您的 Azure 配置：
+### 2. 设置环境变量
 
-```env
-# Azure 语音服务配置
-SPEECH_KEY=your_speech_service_key_here
-SPEECH_REGION=your_region_here
-```
-
-### 3. 启动容器
+创建 `.env` 文件或设置环境变量：
 
 ```bash
-# 构建并启动容器
-docker compose up -d
-
-# 进入容器
-docker-compose exec azure-speech-go bash
+export SPEECH_KEY="your-azure-speech-key"
+export SPEECH_REGION="your-azure-region"  # 例如: eastus, westus2
 ```
 
-## 🎯 功能演示
+### 3. 构建基础镜像
 
-### 批量文本转语音 (`main.go`)
-
-在容器中运行批量语音合成：
+首先构建包含 Azure Speech SDK 的基础镜像：
 
 ```bash
-# 运行批量语音合成
-go run main.go
+sudo docker build -f Dockerfile.base -t azure-speech-sdk:latest .
 ```
 
-功能特点：
-- 支持中文语音合成
-- 使用 `zh-CN-XiaoxiaoNeural` 声音
-- 自动生成带时间戳的 WAV 文件
-- 输出文件保存到 `/workspace/output` 目录
-
-### 交互式语音服务 (`azure_speech_demo.go`)
-
-运行完整的语音服务演示：
+### 4. 启动服务
 
 ```bash
-# 启动交互式演示
-go run azure_speech_demo.go
+# 构建并启动服务
+docker-compose up -d azure-tts-api
+
+# 或使用重建脚本（推荐）
+./rebuild.sh
 ```
 
-支持的功能：
-- `r` / `recognize`: 语音识别（需要麦克风）
-- `t` / `tts`: 文本转语音
-- `w` / `web`: 启动 Web 服务器 (http://localhost:8080)
-- `q` / `quit`: 退出程序
+### 5. 验证服务
 
-### Web 界面访问
+```bash
+# 运行测试脚本
+./test-api.sh
 
-启动 Web 服务后，访问：
-- **本地访问**: http://localhost:8080
-- **容器内访问**: http://container_ip:8080
+# 或手动检查健康状态
+curl http://localhost:8080/api/health
+```
+
+## 📚 API 文档
+
+### 基础信息
+
+- **服务地址**: `http://localhost:8080`
+- **API 基础路径**: `/api`
+- **文档**: `http://localhost:8080/`
+
+### 主要接口
+
+#### 1. 健康检查
+
+```http
+GET /api/health
+```
+
+#### 2. 单句文本转语音
+
+```http
+POST /api/tts
+Content-Type: application/json
+
+{
+  "text": "你好，这是测试文本",
+  "language": "zh-CN",
+  "voice": "zh-CN-XiaoxiaoNeural",
+  "format": "wav"
+}
+```
+
+**响应**:
+```json
+{
+  "success": true,
+  "message": "语音合成成功",
+  "filename": "tts_20241022_150405.wav",
+  "duration": "2.5s"
+}
+```
+
+#### 3. 批量文本转语音
+
+```http
+POST /api/batch-tts
+Content-Type: application/json
+
+{
+  "texts": ["第一句话", "第二句话", "第三句话"],
+  "language": "zh-CN",
+  "voice": "zh-CN-XiaoxiaoNeural",
+  "format": "wav"
+}
+```
+
+#### 4. 获取文件列表
+
+```http
+GET /api/files?limit=10
+```
+
+#### 5. 下载音频文件
+
+```http
+GET /api/download/{filename}
+```
+
+## 🎯 支持的语言和语音
+
+### 中文
+- `zh-CN-XiaoxiaoNeural` (女声)
+- `zh-CN-YunxiNeural` (男声)
+- `zh-CN-YunyangNeural` (男声)
+
+### 英文
+- `en-US-JennyNeural` (女声)
+- `en-US-GuyNeural` (男声)
+- `en-US-AriaNeural` (女声)
+
+### 音频格式
+- `wav` - WAV 格式 (默认)
+- `mp3` - MP3 格式
+
+## 🛠️ 开发工具
+
+### 重建服务
+
+```bash
+./rebuild.sh
+```
+
+### 测试 API
+
+```bash
+./test-api.sh
+```
+
+### 查看日志
+
+```bash
+docker-compose logs -f azure-tts-api
+```
+
+### 进入容器
+
+```bash
+docker-compose exec azure-tts-api /bin/bash
+```
 
 ## 📁 项目结构
 
 ```
-├── main.go                 # 批量语音合成主程序
-├── azure_speech_demo.go    # 交互式语音服务演示
-├── go.mod                  # Go 模块依赖
-├── Dockerfile              # Docker 镜像构建文件
+azure04/
+├── api/                    # Go API 源码
+│   ├── main.go            # 主程序
+│   ├── go.mod             # Go 依赖
+│   └── go.sum
+├── output/                 # 音频文件输出目录
+├── Dockerfile.base         # 基础镜像 Dockerfile
+├── Dockerfile.api          # API 应用 Dockerfile
 ├── docker-compose.yml      # Docker Compose 配置
-├── .env.example           # 环境变量模板
-├── output/                # 生成的音频文件目录
+├── rebuild.sh             # 重建脚本
+├── test-api.sh            # API 测试脚本
 └── README.md              # 项目文档
 ```
 
-## 🔧 技术栈
+## 🔧 配置说明
 
-- **语言**: Go 1.22
-- **SDK**: Microsoft Cognitive Services Speech SDK
-- **容器**: Docker + Ubuntu 24.04
-- **音频格式**: WAV, MP3
-- **语音模型**: zh-CN-XiaoxiaoNeural
+### 环境变量
 
-## 🛠️ 开发指南
+| 变量名 | 说明 | 默认值 | 必需 |
+|--------|------|--------|------|
+| `SPEECH_KEY` | Azure 语音服务密钥 | - | ✅ |
+| `SPEECH_REGION` | Azure 服务区域 | - | ✅ |
+| `OUTPUT_DIR` | 音频文件输出目录 | `/app/output` | ❌ |
+| `PORT` | API 服务端口 | `8080` | ❌ |
+| `GIN_MODE` | Gin 框架模式 | `release` | ❌ |
 
-### 本地开发
+### Docker 配置
 
-如果您想在本地开发而不使用 Docker：
-
-1. 安装 Go 1.22+
-2. 下载 [Azure Speech SDK for Linux](https://aka.ms/csspeech/linuxbinary)
-3. 设置环境变量：
-
-```bash
-export SPEECHSDK_ROOT=/path/to/speechsdk
-export CGO_CFLAGS="-I$SPEECHSDK_ROOT/include/c_api"
-export CGO_LDFLAGS="-L$SPEECHSDK_ROOT/lib/x64 -lMicrosoft.CognitiveServices.Speech.core"
-export LD_LIBRARY_PATH="$SPEECHSDK_ROOT/lib/x64:$LD_LIBRARY_PATH"
-```
-
-### 添加新功能
-
-1. 修改 `azure_speech_demo.go` 添加新的交互选项
-2. 在 `main.go` 中扩展批量处理逻辑
-3. 更新 Docker 配置以支持新的依赖
-
-## 🎵 音频配置
-
-### 支持的音频格式
-- **输入**: 16kHz, 16-bit, 单声道 WAV
-- **输出**: WAV, MP3 (可配置)
-
-### 语音选项
-- **语言**: 中文 (zh-CN)
-- **声音**: XiaoxiaoNeural (可更换为其他中文声音)
-- **质量**: 16kHz, 32kbps (MP3) / 16kHz, 16-bit (WAV)
+- **基础镜像**: `ubuntu:24.04`
+- **Go 版本**: `1.22.0`
+- **Azure Speech SDK**: 最新版本
+- **端口映射**: `8080:8080`
+- **Volume 挂载**: `./output:/app/output`
 
 ## 🚨 故障排除
 
-### 常见问题
+### 1. 权限问题
 
-**1. 环境变量未设置**
-```
-❌ 请设置 SPEECH_KEY 和 SPEECH_REGION 环境变量
-```
-解决方案: 确保 `.env` 文件配置正确
-
-**2. 音频设备权限问题**
-```
-❌ 创建音频配置失败
-```
-解决方案: 检查 Docker 音频设备映射配置
-
-**3. 网络连接问题**
-```
-❌ 语音合成失败: network error
-```
-解决方案: 检查网络连接和 Azure 服务状态
-
-### 调试命令
+如果遇到输出目录权限问题：
 
 ```bash
-# 查看容器日志
-docker-compose logs azure-speech-go
-
-# 检查 Go 模块
-go mod verify
-
-# 测试网络连接
-curl -I https://cognitiveservices.azure.com/
+# 设置输出目录权限
+mkdir -p ./output
+chmod 755 ./output
 ```
 
-## 📚 参考资料
+### 2. 基础镜像不存在
 
-- [Azure 语音服务文档](https://docs.microsoft.com/zh-cn/azure/cognitive-services/speech-service/)
-- [Speech SDK for Go](https://github.com/Microsoft/cognitive-services-speech-sdk-go)
-- [支持的语音列表](https://docs.microsoft.com/zh-cn/azure/cognitive-services/speech-service/language-support)
+```bash
+# 重新构建基础镜像
+sudo docker build -f Dockerfile.base -t azure-speech-sdk:latest .
+```
 
-## 📄 许可证
+### 3. Azure 服务配置错误
 
-本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
+检查环境变量：
+```bash
+echo $SPEECH_KEY
+echo $SPEECH_REGION
+```
+
+### 4. 服务启动失败
+
+查看详细日志：
+```bash
+docker-compose logs azure-tts-api
+```
+
+## 📝 使用示例
+
+### cURL 示例
+
+```bash
+# 健康检查
+curl http://localhost:8080/api/health
+
+# 生成中文语音
+curl -X POST http://localhost:8080/api/tts \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "你好，欢迎使用Azure语音服务",
+    "language": "zh-CN",
+    "voice": "zh-CN-XiaoxiaoNeural",
+    "format": "wav"
+  }'
+
+# 生成英文语音
+curl -X POST http://localhost:8080/api/tts \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "Hello, welcome to Azure Speech Service",
+    "language": "en-US",
+    "voice": "en-US-JennyNeural",
+    "format": "mp3"
+  }'
+
+# 获取文件列表
+curl http://localhost:8080/api/files
+
+# 下载文件
+curl -O http://localhost:8080/api/download/tts_20241022_150405.wav
+```
+
+### JavaScript 示例
+
+```javascript
+// 文本转语音
+const response = await fetch('http://localhost:8080/api/tts', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    text: '这是一个测试文本',
+    language: 'zh-CN',
+    voice: 'zh-CN-XiaoxiaoNeural',
+    format: 'wav'
+  })
+});
+
+const result = await response.json();
+console.log(result);
+
+// 下载生成的文件
+if (result.success) {
+  const audioUrl = `http://localhost:8080/api/download/${result.filename}`;
+  window.open(audioUrl);
+}
+```
 
 ## 🤝 贡献
 
 欢迎提交 Issue 和 Pull Request！
 
-1. Fork 本仓库
-2. 创建功能分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启 Pull Request
+## 📄 许可证
 
-## 👥 联系方式
+MIT License
 
-如果您有任何问题或建议，请通过以下方式联系：
+## 🔗 相关链接
 
-- 📧 邮件: your-email@example.com
-- 🐛 问题反馈: [GitHub Issues](https://github.com/your-username/docker-azure-golang-env/issues)
-
----
-
-⭐ 如果这个项目对您有帮助，请给个 Star！
-
-
-                                                    
-```
-
-ubuntu@VM-0-14-ubuntu:~/azure01$ sudo docker ps
-CONTAINER ID   IMAGE                     COMMAND   CREATED          STATUS          PORTS                                         NAMES
-feacc58f39c2   azure01-azure-speech-go   "bash"    11 seconds ago   Up 11 seconds   0.0.0.0:8080->8080/tcp, [::]:8080->8080/tcp   azure-speech-go-dev
-ubuntu@VM-0-14-ubuntu:~/azure01$ sudo docker exec -it feacc58f39c2 /bin/bash
-root@feacc58f39c2:/workspace# ls
-Dockerfile  README.md      azure_speech_demo.go  docker-compose.yml  go.sum   output          run_tts.sh  test_environment.sh
-Makefile    TTS_README.md  dev01.md              go.mod              main.go  quick_start.sh  start.sh    text_to_speech.go
-root@feacc58f39c2:/workspace# ll
-total 92
-drwxr-xr-x 3 ubuntu 1001 4096 Oct 21 10:08 ./
-drwxr-xr-x 1 root   root 4096 Oct 21 10:08 ../
--rw-r--r-- 1 ubuntu 1001  116 Oct 21 08:17 .env
--rw-r--r-- 1 ubuntu 1001  527 Oct 21 08:31 .env.example
--rw-r--r-- 1 ubuntu 1001 1986 Oct 21 10:05 Dockerfile
--rw-r--r-- 1 ubuntu 1001 1238 Oct 21 08:35 Makefile
--rw-r--r-- 1 ubuntu 1001 4678 Oct 21 08:33 README.md
--rw-r--r-- 1 ubuntu 1001 1438 Oct 21 10:05 TTS_README.md
--rw-r--r-- 1 ubuntu 1001 7035 Oct 21 08:32 azure_speech_demo.go
--rw-r--r-- 1 ubuntu 1001 4345 Oct 21 08:45 dev01.md
--rw-r--r-- 1 ubuntu 1001 1060 Oct 21 10:04 docker-compose.yml
--rw-r--r-- 1 ubuntu 1001  108 Oct 21 08:57 go.mod
--rw-r--r-- 1 ubuntu 1001  227 Oct 21 08:56 go.sum
--rw-r--r-- 1 ubuntu 1001 1667 Oct 21 08:14 main.go
-drwxr-xr-x 2 root   root 4096 Oct 21 10:08 output/
--rw-r--r-- 1 ubuntu 1001 2367 Oct 21 08:35 quick_start.sh
--rwxr-xr-x 1 ubuntu 1001  705 Oct 21 10:05 run_tts.sh*
--rw-r--r-- 1 ubuntu 1001  530 Oct 21 08:14 start.sh
--rw-r--r-- 1 ubuntu 1001 2676 Oct 21 08:34 test_environment.sh
--rw-r--r-- 1 ubuntu 1001 3257 Oct 21 10:04 text_to_speech.go
-root@feacc58f39c2:/workspace# cd output/  
-root@feacc58f39c2:/workspace/output# ls
-root@feacc58f39c2:/workspace/output# ll
-total 8
-drwxr-xr-x 2 root   root 4096 Oct 21 10:08 ./
-drwxr-xr-x 3 ubuntu 1001 4096 Oct 21 10:08 ../
-root@feacc58f39c2:/workspace/output# cd ..
-root@feacc58f39c2:/workspace# go run text_to_speech.go 
-开始批量语音合成...
-===========================================
-正在合成: 你好，这是 Azure 语音服务的测试。
-✓ 音频已保存到: /workspace/output/speech_1_20251021_100859.wav
--------------------------------------------
-正在合成: 今天天气很好，适合出去散步。
-✓ 音频已保存到: /workspace/output/speech_2_20251021_100901.wav
--------------------------------------------
-正在合成: 人工智能正在改变我们的生活方式。
-✓ 音频已保存到: /workspace/output/speech_3_20251021_100903.wav
--------------------------------------------
-正在合成: 学习新技能需要耐心和持续的努力。
-✓ 音频已保存到: /workspace/output/speech_4_20251021_100904.wav
--------------------------------------------
-正在合成: 科技让世界变得更加美好和便捷。
-✓ 音频已保存到: /workspace/output/speech_5_20251021_100906.wav
--------------------------------------------
-===========================================
-合成完成！成功: 5/5
-音频文件保存在: /workspace/output
-root@feacc58f39c2:/workspace# 
-
-```
+- [Azure 认知服务文档](https://docs.microsoft.com/azure/cognitive-services/speech-service/)
+- [Azure Speech SDK for Go](https://github.com/Microsoft/cognitive-services-speech-sdk-go)
+- [Docker 官方文档](https://docs.docker.com/)
+- [Go 官方文档](https://golang.org/doc/)

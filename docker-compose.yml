@@ -1,38 +1,32 @@
-version: '3.8'
-
 services:
-  azure-speech-go:
+  # Azure TTS API 服务 (基于预构建基础镜像)
+  azure-tts-api:
     build:
       context: .
-      dockerfile: Dockerfile
-    container_name: azure-speech-go-dev
-    working_dir: /workspace
-    volumes:
-      - .:/workspace
-      - ./output:/workspace/output
-      - go-modules:/go/pkg/mod
+      dockerfile: Dockerfile.api
+    container_name: azure-tts-api
     environment:
       # Azure Speech Service 配置
       - SPEECH_KEY=${SPEECH_KEY}
       - SPEECH_REGION=${SPEECH_REGION}
-      # Go 环境配置
-      - GO111MODULE=on
-      - GOPROXY=https://goproxy.cn,direct
-      - CGO_ENABLED=1
-      # Speech SDK 环境变量
-      - SPEECHSDK_ROOT=/opt/speechsdk
-      - CGO_CFLAGS=-I/opt/speechsdk/include/c_api
-      - CGO_LDFLAGS=-L/opt/speechsdk/lib/x64 -lMicrosoft.CognitiveServices.Speech.core
-      - LD_LIBRARY_PATH=/opt/speechsdk/lib/x64:$LD_LIBRARY_PATH
+      # 应用配置
+      - OUTPUT_DIR=/app/output
+      - PORT=8080
+      - GIN_MODE=release
     ports:
       - "8080:8080"
-    devices:
-      # 音频设备支持（如果需要麦克风和扬声器）
-      - /dev/snd:/dev/snd
-    stdin_open: true
-    tty: true
+    volumes:
+      # 挂载输出目录到主机
+      - ./output:/app/output
+    restart: unless-stopped
     networks:
       - azure-speech-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 volumes:
   go-modules:
