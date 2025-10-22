@@ -1,6 +1,6 @@
 # Azure Speech & Translation Toolkit
 
-基于 Azure 认知服务的语音工具包，包含文本转语音 (TTS) API 和文本翻译功能，支持多种语言和音频格式。
+基于 Docker 构建 Azure 认知服务的语音工具包，包含文本转语音 (TTS) API 和文本翻译功能，支持多种语言和音频格式。
 
 ## 🚀 快速开始
 
