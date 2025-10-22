@@ -1,6 +1,6 @@
-# Azure TTS API 服务
+# Azure Speech & Translation Toolkit
 
-基于 Azure 认知服务的文本转语音 API，支持多种语言和音频格式。
+基于 Azure 认知服务的语音工具包，包含文本转语音 (TTS) API 和文本翻译功能，支持多种语言和音频格式。
 
 ## 🚀 快速开始
 
@@ -8,12 +8,13 @@
 
 - Docker & Docker Compose
 - Azure 认知服务订阅 (Speech Service)
+- Azure 翻译服务订阅 (Translator Service) - 用于文本翻译功能
 
 ### 1. 克隆项目
 
 ```bash
-git clone https://github.com/difyz9/azure-speech-go-toolkit
-cd azure-speech-go-toolkit
+git clone https://github.com/difyz9/azure-speech-go
+cd azure-speech-go
 ```
 
 ### 2. 设置环境变量
@@ -24,6 +25,8 @@ cd azure-speech-go-toolkit
 export SPEECH_KEY="your-azure-speech-key"
 export SPEECH_REGION="your-azure-region"  # 例如: eastus, westus2
 ```
+
+**注意**: `SPEECH_KEY` 和 `SPEECH_REGION` 同时用于语音服务和翻译服务。
 
 ### 3. 构建基础镜像
 
@@ -52,6 +55,19 @@ docker-compose up -d azure-tts-api
 # 或手动检查健康状态
 curl http://localhost:8080/api/health
 ```
+
+## 📚 功能特性
+
+### 🎤 文本转语音 (TTS)
+- 支持单句和批量文本转语音
+- 多种语言和语音选择
+- WAV/MP3 音频格式输出
+- 音频文件管理和下载
+
+### 🔄 文本翻译
+- 基于 Azure Translator API
+- 支持多语言互译
+- 简单易用的翻译示例
 
 ## 📚 API 文档
 
@@ -149,6 +165,27 @@ GET /api/download/{filename}
 ./test-api.sh
 ```
 
+### 文本翻译示例
+
+项目包含独立的翻译功能示例 (`api/translate.go`)，可以直接运行：
+
+```bash
+# 进入 api 目录
+cd api
+
+# 设置环境变量
+export SPEECH_KEY="your-azure-speech-key"
+export SPEECH_REGION="your-azure-region"
+
+# 运行翻译示例
+go run translate.go
+```
+
+**翻译示例说明**:
+- 默认从英文翻译到中文 (en → zh)
+- 示例文本: "I would really like to drive your car around the block a few times."
+- 返回 JSON 格式的翻译结果
+
 ### 查看日志
 
 ```bash
@@ -164,10 +201,11 @@ docker-compose exec azure-tts-api /bin/bash
 ## 📁 项目结构
 
 ```
-azure04/
-├── api/                    # Go API 源码
-│   ├── main.go            # 主程序
-│   ├── go.mod             # Go 依赖
+azure-speech-go-toolkit/
+├── api/                    # Go 源码目录
+│   ├── main.go            # TTS API 主程序
+│   ├── translate.go       # 文本翻译示例
+│   ├── go.mod             # Go 依赖管理
 │   └── go.sum
 ├── output/                 # 音频文件输出目录
 ├── Dockerfile.base         # 基础镜像 Dockerfile
@@ -184,7 +222,7 @@ azure04/
 
 | 变量名 | 说明 | 默认值 | 必需 |
 |--------|------|--------|------|
-| `SPEECH_KEY` | Azure 语音服务密钥 | - | ✅ |
+| `SPEECH_KEY` | Azure 语音/翻译服务密钥 | - | ✅ |
 | `SPEECH_REGION` | Azure 服务区域 | - | ✅ |
 | `OUTPUT_DIR` | 音频文件输出目录 | `/app/output` | ❌ |
 | `PORT` | API 服务端口 | `8080` | ❌ |
@@ -294,6 +332,59 @@ if (result.success) {
 }
 ```
 
+### Go 翻译示例
+
+```go
+package main
+
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "log"
+    "os"
+    "net/http"
+    "net/url"
+)
+
+func translateText() {
+    key := os.Getenv("SPEECH_KEY")
+    endpoint := "https://api.cognitive.microsofttranslator.com/"
+    uri := endpoint + "/translate?api-version=3.0"
+    location := os.Getenv("SPEECH_REGION")
+
+    // 构建请求URL
+    u, _ := url.Parse(uri)
+    q := u.Query()
+    q.Add("from", "en")  // 源语言
+    q.Add("to", "zh")    // 目标语言
+    u.RawQuery = q.Encode()
+
+    // 请求体
+    body := []struct {
+        Text string
+    }{
+        {Text: "Hello, how are you?"},
+    }
+    b, _ := json.Marshal(body)
+
+    // 创建HTTP请求
+    req, _ := http.NewRequest("POST", u.String(), bytes.NewBuffer(b))
+    req.Header.Add("Ocp-Apim-Subscription-Key", key)
+    req.Header.Add("Ocp-Apim-Subscription-Region", location)
+    req.Header.Add("Content-Type", "application/json")
+
+    // 发送请求
+    res, _ := http.DefaultClient.Do(req)
+    
+    // 解析响应
+    var result interface{}
+    json.NewDecoder(res.Body).Decode(&result)
+    prettyJSON, _ := json.MarshalIndent(result, "", "  ")
+    fmt.Printf("%s\n", prettyJSON)
+}
+```
+
 ## 🤝 贡献
 
 欢迎提交 Issue 和 Pull Request！
@@ -306,5 +397,7 @@ MIT License
 
 - [Azure 认知服务文档](https://docs.microsoft.com/azure/cognitive-services/speech-service/)
 - [Azure Speech SDK for Go](https://github.com/Microsoft/cognitive-services-speech-sdk-go)
+- [Azure Translator 文档](https://docs.microsoft.com/azure/cognitive-services/translator/)
+- [Azure Translator API 参考](https://docs.microsoft.com/azure/cognitive-services/translator/reference/v3-0-translate)
 - [Docker 官方文档](https://docs.docker.com/)
 - [Go 官方文档](https://golang.org/doc/)
