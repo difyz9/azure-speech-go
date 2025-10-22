@@ -12,8 +12,8 @@
 ### 1. 克隆项目
 
 ```bash
-git clone <repository-url>
-cd azure04
+git clone https://github.com/difyz9/azure-speech-go-toolkit
+cd azure-speech-go-toolkit
 ```
 
 ### 2. 设置环境变量
